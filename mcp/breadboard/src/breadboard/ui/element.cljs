@@ -29,7 +29,7 @@
 :host { display: block; position: relative; height: 440px; overflow: hidden; border-radius: var(--radius-panel);
         line-height: 1.35; color: var(--fg-0); background: var(--bb-background, transparent); }
 .root { display: flex; height: 100%; }
-.stage { position: relative; flex: 1; min-width: 0; }
+.stage { position: relative; flex: 1; min-width: 0; container-type: inline-size; }
 canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
 .bar { position: absolute; left: 8px; top: 8px; right: 8px; display: flex; gap: 6px; align-items: center;
        pointer-events: none; }
@@ -40,6 +40,11 @@ canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: 
 .bar .gap { margin-right: auto; }
 .bar .btn-secondary, .steps .btn-secondary { background: var(--bg-1); }
 .bar .btn.is-active { background: var(--bg-2); }
+@container (max-width: 520px) {
+  .bar .title, .bar .label { display: none; }
+  .bar > :first-child { margin-right: auto; }
+  .bar .button-group-item { padding: 0 var(--size-2); }
+}
 .info { position: absolute; left: 8px; bottom: 8px; max-width: calc(100% - 16px); padding: 5px 10px;
         border-radius: var(--radius-md); background: var(--bg-1); box-shadow: var(--shadow-1); pointer-events: none;
         white-space: pre-wrap; }
@@ -155,7 +160,7 @@ canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: 
                       :class (when (:side-open s) "is-active")
                       :attrs {:title "Parts and wires" :aria-pressed (str (boolean (:side-open s)))}
                       :on-click #(toggle-sidebar! el nil)}
-                     "Layers")
+                     [:span {:class "label"} "Layers"])
       (if title [:span {:class "title" :title title} title] [:span {:class "gap"}])
       (into (button-group/button-group {:variant "boxed"})
             (for [[v label] [["3d" "3D"] ["top" "Top"] ["bottom" "Underside"]]]
