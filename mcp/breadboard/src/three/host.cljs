@@ -14,7 +14,8 @@
         apply-context! (fn [ctx]
                          (let [vars (or (:variables (:styles ctx)) {})]
                            (doseq [k (js/Object.keys vars)]
-                             (.setProperty (.. js/document -documentElement -style) k (aget vars k))))
+                             (.setProperty (.. js/document -documentElement -style) k (aget vars k)))
+                           (when (:theme ctx) (.setAttribute js/document.documentElement "data-theme" (:theme ctx))))
                          (when (and on-mode (:displayMode ctx)) (on-mode (:displayMode ctx))))]
     (.addEventListener js/window "message"
                        (fn [e]

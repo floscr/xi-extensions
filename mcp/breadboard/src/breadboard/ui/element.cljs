@@ -7,63 +7,65 @@
    :only :show :hide :labels :highlight :focus :note :step :clear}): the
    sidebar, page links (breadboard.ui.main), the agent's commands and live
    eval (js/board in a view). The layout comes from a child <script
-   type=\"application/json\">, or `setLayout`."
+   type=\"application/json\">, or `setLayout`.
+
+   The controls are clj-ui-framework components in a three.shadow root."
   (:require ["three" :as THREE]
             [breadboard.model :as model]
             [breadboard.ui.draw :as draw]
             [breadboard.ui.scene :as scene]
             [three.core :as core]
             [three.dom :as dom]
+            [three.shadow :as shadow]
             [three.stage :as stage]
-            [three.text :as text]))
+            [ui.badge :as badge]
+            [ui.button :as button]
+            [ui.button-group :as button-group]
+            [ui.form :as form]))
 
 (def hint "Drag to orbit, scroll to zoom. Click a hole, pin or wire to see what it connects to.")
 
 (def style (str "
-:host { display: block; position: relative; height: 440px; overflow: hidden; border-radius: 12px;
-        font: 13px/1.35 " text/font "; color: var(--color-text-primary, #1d1d1f);
-        background: var(--bb-background, transparent); }
+:host { display: block; position: relative; height: 440px; overflow: hidden; border-radius: var(--radius-panel);
+        line-height: 1.35; color: var(--fg-0); background: var(--bb-background, transparent); }
 .root { display: flex; height: 100%; }
 .stage { position: relative; flex: 1; min-width: 0; }
 canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
 .bar { position: absolute; left: 8px; top: 8px; right: 8px; display: flex; gap: 6px; align-items: center;
        pointer-events: none; }
-.bar > * { pointer-events: auto; }
-.title { font-weight: 650; margin-right: auto; padding: 3px 8px; border-radius: 999px; min-width: 0;
-         overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-         background: var(--color-background-secondary, #ffffffd9); }
-.title[hidden] + * { margin-left: auto; }
-button { font: inherit; padding: 3px 10px; flex: none; border-radius: var(--border-radius-sm, 999px); cursor: pointer;
-         border: 1px solid var(--color-border-primary, #0000001f); color: inherit;
-         background: var(--color-background-secondary, #ffffffd9); }
-button.on { background: var(--color-text-primary, #1d1d1f); color: var(--color-background-primary, #fff); }
-button:disabled { opacity: .4; cursor: default; }
-.info { position: absolute; left: 8px; bottom: 8px; max-width: calc(100% - 16px); padding: 4px 10px;
-        border-radius: 10px; background: var(--color-background-secondary, #ffffffe6); pointer-events: none;
-        white-space: pre-wrap; box-sizing: border-box; }
+.bar > * { pointer-events: auto; flex: none; }
+.bar .title { flex: 0 1 auto; min-width: 0; margin-right: auto; padding: 4px 10px; font-weight: var(--weight-medium);
+              border-radius: var(--radius-pill); background: var(--bg-1); box-shadow: var(--shadow-0);
+              overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar .gap { margin-right: auto; }
+.bar .btn-secondary, .steps .btn-secondary { background: var(--bg-1); }
+.bar .btn.is-active { background: var(--bg-2); }
+.info { position: absolute; left: 8px; bottom: 8px; max-width: calc(100% - 16px); padding: 5px 10px;
+        border-radius: var(--radius-md); background: var(--bg-1); box-shadow: var(--shadow-1); pointer-events: none;
+        white-space: pre-wrap; }
 .info:empty { display: none; }
-.problems { color: #c62828; }
-.has-steps .info { bottom: 58px; }
+.problems { color: var(--danger); }
+.has-steps .info { bottom: 62px; }
 .steps { position: absolute; left: 8px; right: 8px; bottom: 8px; display: flex; gap: 8px; align-items: center;
-         padding: 6px 8px; border-radius: 12px; box-sizing: border-box;
-         border: 1px solid var(--color-border-primary, #0000001f);
-         background: var(--color-background-secondary, #ffffffee); }
+         padding: 6px; border-radius: var(--radius-surface); border: var(--border-0);
+         background: var(--bg-1); box-shadow: var(--shadow-1); }
 .steps[hidden] { display: none; }
 .stext { flex: 1; max-height: 3.6em; overflow: auto; }
-.side { width: 230px; flex: none; overflow: auto; padding: 8px 6px 8px 8px; box-sizing: border-box; font-size: 12px;
-        border-right: 1px solid var(--color-border-primary, #0000001a);
-        background: var(--color-background-secondary, #f7f5ef); }
+.stext b { font-weight: var(--weight-medium); }
+.side { width: 236px; flex: none; overflow: auto; padding: 8px; font-size: var(--font-xs, 12px);
+        border-right: var(--border-0); background: var(--bg-0); }
 .side[hidden] { display: none; }
 .side ul { list-style: none; margin: 2px 0 10px; padding: 0; }
-.side li { display: flex; align-items: center; gap: 5px; padding: 1px 3px; border-radius: 6px; }
-.side li.sel { background: #ffb30040; }
-.side .grp { display: flex; align-items: center; gap: 6px; font-weight: 650; margin: 4px 0 2px; cursor: pointer; }
-.side .sw { width: 14px; height: 7px; border-radius: 4px; flex: none; border: 1px solid #00000026; }
-.side .pick { all: unset; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-              flex: 1; min-width: 0; }
-.side .pick:hover b { text-decoration: underline; }
-.side .sub { opacity: .65; }
-.side input { margin: 0; }
+.side li { display: flex; align-items: center; gap: 6px; padding: 1px 4px; border-radius: var(--radius-sm); }
+.side li.sel { background: var(--accent-subtle); }
+.side .grp { font-weight: var(--weight-medium); margin: 4px 0 2px; }
+.side .grp .badge { margin-left: 4px; }
+.side .form-field { margin: 0; }
+.side .sw { width: 14px; height: 7px; border-radius: 4px; flex: none; border: var(--border-1); }
+.side .pick { flex: 1; min-width: 0; height: auto; min-height: 0; padding: 2px 4px; justify-content: flex-start;
+              font-size: inherit; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side .pick b { font-weight: var(--weight-medium); }
+.side .sub { color: var(--fg-1); }
 "))
 
 (defn st [el] (.-bb el))
@@ -135,6 +137,33 @@ button:disabled { opacity: .4; cursor: default; }
 
 ;; ── Views ──
 
+(declare set-view! toggle-sidebar!)
+
+(defn- full-screen! [el]
+  (if-let [f (.-onFullscreen el)]
+    (f)
+    (if js/document.fullscreenElement (js/document.exitFullscreen) (.requestFullscreen el))))
+
+(defn- bar!
+  "The bar from the element's state: Layers, the title, the view switch, Full screen."
+  [el]
+  (let [s (st el)
+        title (:title (:layout s))]
+    (dom/replace-children!
+     (q el ".bar")
+     [(button/button {:variant "secondary" :size "sm" :icon-left "layers"
+                      :class (when (:side-open s) "is-active")
+                      :attrs {:title "Parts and wires" :aria-pressed (str (boolean (:side-open s)))}
+                      :on-click #(toggle-sidebar! el nil)}
+                     "Layers")
+      (if title [:span {:class "title" :title title} title] [:span {:class "gap"}])
+      (into (button-group/button-group {:variant "boxed"})
+            (for [[v label] [["3d" "3D"] ["top" "Top"] ["bottom" "Underside"]]]
+              (button-group/button-group-item {:active (= v (:view s)) :on-click #(set-view! el v false)} label)))
+      (button/button {:variant "secondary" :size "sm" :icon "maximize"
+                      :attrs {:title "Full screen" :aria-label "Full screen"}
+                      :on-click #(full-screen! el)})])))
+
 (defn- flip! [el on instant?]
   (let [s (st el) pivot (:pivot s)
         from (.. pivot -rotation -x) to (if on js/Math.PI 0)]
@@ -151,8 +180,7 @@ button:disabled { opacity: .4; cursor: default; }
       (let [flip? (= view "bottom")]
         (when-not (= flip? (boolean (:flipped s))) (flip! el flip? instant?))
         (assoc! s :view view)
-        (doseq [b (q-all el "[data-view]")]
-          (.toggle (.-classList b) "on" (= view (.. b -dataset -view))))
+        (bar! el)
         (fit! el true)))))
 
 ;; ── Pointing at things ──
@@ -287,14 +315,15 @@ button:disabled { opacity: .4; cursor: default; }
 
 (defn- sync-sidebar! [el]
   (let [s (st el)]
-    (doseq [cb (q-all el "input[data-id]")]
-      (set! (.-checked cb) (not (contains? (:hidden s) (.. cb -dataset -id)))))
-    (doseq [all (q-all el "input[data-all]")]
-      (let [boxes (vec (q-all el (str "ul[data-kind=" (.. all -dataset -all) "] input")))
+    (doseq [li (q-all el "li[data-id]")]
+      (set! (.-checked (.querySelector li "input")) (not (contains? (:hidden s) (.. li -dataset -id)))))
+    (doseq [grp (q-all el "[data-all]")]
+      (let [all (.querySelector grp "input")
+            boxes (vec (q-all el (str "ul[data-kind=" (.. grp -dataset -all) "] input")))
             on (count (filter #(.-checked %) boxes))]
         (set! (.-checked all) (= on (count boxes)))
         (set! (.-indeterminate all) (and (pos? on) (< on (count boxes))))))
-    (when-let [lab (q el "input[data-labels]")]
+    (when-let [lab (q el "[data-labels] input")]
       (set! (.-checked lab) (boolean (:labels s))))))
 
 (declare command!)
@@ -311,10 +340,9 @@ button:disabled { opacity: .4; cursor: default; }
         group (fn [title kind items]
                 (when (seq items)
                   (let [ids (mapv :key items)]
-                    [[:label {:class "grp"}
-                      [:input {:type "checkbox" :data-all kind
-                               :on-change (fn [e] (set-shown! el ids (.. e -target -checked)))}]
-                      [:span (str title " (" (count ids) ")")]]
+                    [(form/form-checkbox {:class "grp" :attrs {:data-all kind}
+                                          :label [:span title (badge/badge {:variant "secondary" :size "sm"} (str (count ids)))]
+                                          :on-change (fn [e] (set-shown! el ids (.. e -target -checked)))})
                      [:ul {:data-kind kind}
                       (for [it items]
                         (let [k (:key it)
@@ -323,20 +351,18 @@ button:disabled { opacity: .4; cursor: default; }
                                     (str " " (if (seq (:label it)) (:label it) (str (end-name s (:from it)) " → " (end-name s (:to it)))))
                                     (if (and (:id it) (seq (:label it)) (not= (:label it) (:id it))) (str " " (:id it)) ""))]
                           [:li {:data-id k}
-                           [:input {:type "checkbox" :data-id k
-                                    :on-change (fn [e] (set-shown! el [k] (.. e -target -checked)))}]
+                           (form/form-checkbox {:attrs {:title (str "Show " nm)}
+                                                :on-change (fn [e] (set-shown! el [k] (.. e -target -checked)))})
                            [:span {:class "sw" :style {"background" (or (:color (:spec it)) (if (= kind "wire") "#2e7d32" "#9e9e9e"))}}]
-                           [:button {:class "pick" :title (str nm sub)
-                                     :on-click (fn [_] (command! el {:highlight [k]}))}
-                            [:b nm] [:span {:class "sub"} sub]]]))]])))]
+                           (button/button {:variant "ghost" :size "sm" :class "pick" :attrs {:title (str nm sub)}
+                                           :on-click (fn [_] (command! el {:highlight [k]}))}
+                                          [:b nm] [:span {:class "sub"} sub])]))]])))]
     (dom/replace-children!
      (q el ".side")
      (concat (group "Parts" "part" (:parts r))
              (group "Wires" "wire" (:wires r))
-             [[:label {:class "grp"}
-               [:input {:type "checkbox" :data-labels "1"
-                        :on-change (fn [e] (assoc! s :labels (.. e -target -checked)) (render! el))}]
-               [:span "Labels"]]]))
+             [(form/form-checkbox {:class "grp" :attrs {:data-labels "1"} :label "Labels"
+                                   :on-change (fn [e] (assoc! s :labels (.. e -target -checked)) (render! el))})]))
     (sync-sidebar! el)))
 
 (defn toggle-sidebar! [el open]
@@ -344,10 +370,12 @@ button:disabled { opacity: .4; cursor: default; }
         open (if (nil? open) (not (:side-open s)) (boolean open))]
     (assoc! s :side-open open)
     (set! (.-hidden (q el ".side")) (not open))
-    (.toggle (.-classList (q el "[data-act=side]")) "on" open)
+    (bar! el)
     (fit! el false)))
 
 ;; ── Steps ──
+
+(declare go-step!)
 
 (defn- step-ui! [el]
   (let [s (st el)
@@ -359,11 +387,18 @@ button:disabled { opacity: .4; cursor: default; }
       (let [k (:step s)
             step (when (>= k 0) (nth steps k))]
         (dom/replace-children!
-         (q el ".stext")
-         [[:b (if step (str (inc k) "/" (count steps) " · " (or (:title step) "")) (str (count steps) " steps"))]
-          [:span (if step (if (:text step) (str " · " (:text step)) "") " · › builds it up step by step")]])
-        (set! (.-disabled (q el "[data-step=prev]")) (< k 0))
-        (set! (.-disabled (q el "[data-step=next]")) (>= k (dec (count steps))))))))
+         box
+         [(button/button {:variant "secondary" :size "sm" :icon "chevron-left" :disabled (< k 0)
+                          :attrs {:aria-label "Previous step"} :on-click #(go-step! el (dec (:step (st el))) false)})
+          [:div {:class "stext"}
+           (badge/badge {:variant (if step "primary" "secondary") :size "sm"}
+                        (if step (str (inc k) "/" (count steps)) (str (count steps) " steps")))
+           " "
+           [:b (if step (or (:title step) "") "The whole board")]
+           [:span (if step (if (:text step) (str " · " (:text step)) "") " · next builds it up step by step")]]
+          (button/button {:variant (if (neg? k) "primary" "secondary") :size "sm" :icon "chevron-right"
+                          :disabled (>= k (dec (count steps)))
+                          :attrs {:aria-label "Next step"} :on-click #(go-step! el (inc (:step (st el))) false)})])))))
 
 (defn go-step!
   "Step `k` (0-based; -1 is the whole board). A step's :add puts parts and
@@ -454,9 +489,7 @@ button:disabled { opacity: .4; cursor: default; }
             :steps (if (vector? (:steps layout)) (:steps layout) [])
             :extras (or (:extras s) []))
     (set! (.-resolved el) r)
-    (let [t (q el ".title")]
-      (set! (.-textContent t) (or (:title layout) ""))
-      (set! (.-hidden t) (not (:title layout))))
+    (bar! el)
     (sidebar! el)
     (when (nil? (:side-open s))
       (toggle-sidebar! el (if (.hasAttribute el "sidebar")
@@ -475,25 +508,13 @@ button:disabled { opacity: .4; cursor: default; }
    [:aside {:class "side" :hidden true}]
    [:div {:class "stage"}
     [:canvas]
-    [:div {:class "bar"}
-     [:button {:data-act "side"} "Layers"]
-     [:span {:class "title" :hidden true}]
-     [:button {:data-view "3d"} "3D"]
-     [:button {:data-view "top"} "Top"]
-     [:button {:data-view "bottom"} "Underside"]
-     [:button {:data-act "full"} "Full screen"]]
+    [:div {:class "bar"}]
     [:div {:class "info"}]
-    [:div {:class "steps" :hidden true}
-     [:button {:data-step "prev"} "‹"]
-     [:div {:class "stext"}]
-     [:button {:data-step "next"} "›"]]]])
+    [:div {:class "steps" :hidden true}]]])
 
 (defn connect! [el]
   (when-not (st el)
-    (let [root (.attachShadow el {:mode "open"})
-          css (js/document.createElement "style")]
-      (set! (.-textContent css) style)
-      (.append root css (dom/h template))
+    (let [root (shadow/attach! el style template)]
       (let [canvas (.querySelector root "canvas")
             stg (stage/create! canvas {:damping 0.3})
             pivot (THREE/Group.)
@@ -503,15 +524,7 @@ button:disabled { opacity: .4; cursor: default; }
         (.add (:root stg) pivot)
         (.add (:scene stg) (core/render! (THREE/Group.) scene/lights))
         (.observe (js/ResizeObserver. #(fit! el false)) (.querySelector root ".stage"))
-        (doseq [b (.querySelectorAll root "[data-view]")]
-          (.addEventListener b "click" #(set-view! el (.. b -dataset -view) false)))
-        (.addEventListener (.querySelector root "[data-act=side]") "click" #(toggle-sidebar! el nil))
-        (.addEventListener (.querySelector root "[data-act=full]") "click"
-                           #(if-let [f (.-onFullscreen el)]
-                              (f)
-                              (if js/document.fullscreenElement (js/document.exitFullscreen) (.requestFullscreen el))))
-        (.addEventListener (.querySelector root "[data-step=prev]") "click" #(go-step! el (dec (:step (st el))) false))
-        (.addEventListener (.querySelector root "[data-step=next]") "click" #(go-step! el (inc (:step (st el))) false))
+        (bar! el)
         (when-let [h (.getAttribute el "height")]
           (set! (.. el -style -height) (if (re-matches #"[0-9]+" h) (str h "px") h)))
         (when-not (:layout s)

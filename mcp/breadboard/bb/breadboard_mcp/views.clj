@@ -4,8 +4,10 @@
    source file changes. A bundle imports three and squint-cljs by bare name;
    `importmap` resolves them to jsDelivr, the one host a view's CSP allows."
   (:require [babashka.fs :as fs]
+            [cheshire.core :as json]
             [clojure.string :as str]
-            [breadboard-mcp.build :as build]))
+            [breadboard-mcp.build :as build]
+            [breadboard-mcp.clj-ui :as clj-ui]))
 
 (def root (fs/parent (fs/parent (fs/parent (fs/absolutize *file*)))))
 (def src-dir (fs/path root "src"))
@@ -13,12 +15,15 @@
 (def three-version "0.170.0")
 (def squint-version "0.14.208")
 
+(def imports
+  (array-map
+   "three" (str "https://cdn.jsdelivr.net/npm/three@" three-version "/build/three.module.js")
+   "three/addons/" (str "https://cdn.jsdelivr.net/npm/three@" three-version "/examples/jsm/")
+   "squint-cljs" (str "https://cdn.jsdelivr.net/npm/squint-cljs@" squint-version "/index.js")
+   "squint-cljs/" (str "https://cdn.jsdelivr.net/npm/squint-cljs@" squint-version "/")))
+
 (def importmap
-  (str "<script type=\"importmap\">{\"imports\": {"
-       "\"three\": \"https://cdn.jsdelivr.net/npm/three@" three-version "/build/three.module.js\", "
-       "\"three/addons/\": \"https://cdn.jsdelivr.net/npm/three@" three-version "/examples/jsm/\", "
-       "\"squint-cljs\": \"https://cdn.jsdelivr.net/npm/squint-cljs@" squint-version "/index.js\", "
-       "\"squint-cljs/\": \"https://cdn.jsdelivr.net/npm/squint-cljs@" squint-version "/\"}}</script>"))
+  (str "<script type=\"importmap\">" (json/generate-string {:imports imports}) "</script>"))
 
 (def csp {:resourceDomains ["https://cdn.jsdelivr.net"]})
 
@@ -32,12 +37,25 @@
       (str/replace "/" ".")
       (str/replace "_" "-")))
 
+(defn- css-module
+  "three.clj-ui-css: clj-ui's CSS as a string for three.shadow, generated
+   into .compiled/ (rewritten only on change)."
+  []
+  (let [f (fs/path root ".compiled" "gen" "clj_ui_css.cljs")
+        src (str "(ns three.clj-ui-css)\n\n(def css " (pr-str (clj-ui/css)) ")\n")]
+    (when-not (and (fs/exists? f) (= src (slurp (fs/file f))))
+      (fs/create-dirs (fs/parent f))
+      (spit (fs/file f) src))
+    f))
+
 (defn sources
   "module → file for everything under src/ (.cljs, and .cljc shared with the
-   server); plus `extra` dirs, named relative to src/'s parent."
+   server), the clj-ui components and their CSS; plus `extra` dirs, named
+   relative to src/'s parent."
   ([] (sources []))
   ([extra]
-   (into {} (for [dir (into [src-dir] extra)
+   (into (assoc (clj-ui/sources) "three.clj-ui-css" (css-module))
+         (for [dir (into [src-dir] extra)
                   f (concat (fs/glob dir "**.cljc") (fs/glob dir "**.cljs"))]
               [(if (= dir src-dir) (module-name f)
                    (-> (str (fs/relativize root f)) (str/replace #"\.clj[cs]$" "") (str/replace "/" ".") (str/replace "_" "-")))

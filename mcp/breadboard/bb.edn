@@ -2,7 +2,11 @@
  :deps {io.github.squint-cljs/squint {:git/url "https://github.com/squint-cljs/squint"
                                      :git/sha "e83befd03153b842d45cd25a77fefb915f120eb7"}
         io.github.babashka/babashka.esbuild {:git/url "https://github.com/babashka/babashka.esbuild"
-                                             :git/sha "c25eeb3d86ad739428e600375a96ad4024b379b9"}}
+                                             :git/sha "c25eeb3d86ad739428e600375a96ad4024b379b9"}
+        ;; the views' bar, sidebar and steps: its .cljc compiled by squint, its CSS inlined
+        io.github.floscr/clj-ui-framework {:git/url "https://github.com/floscr/clj-ui-framework.git"
+                                           :git/tag "v2.3.1"
+                                           :git/sha "77801e4d23847806e3a6ffbe5e924dd40ed476b7"}}
  :tasks
  {serve {:doc "Run the MCP server on stdin/stdout (xi starts it, see breadboard-mcp.main)"
          :requires ([breadboard-mcp.main])
@@ -11,6 +15,12 @@
          :requires ([breadboard-mcp.views :as views])
          :task (doseq [e ["breadboard.ui.main" "scene.ui.main"]]
                  (println e (format "%.0f KiB" (/ (count (views/bundle e)) 1024.0))))}
+  bundle {:doc "Write <breadboard-view>'s bundle and its import map to dist/, for a site that embeds boards (load the import map, then the bundle as a module)"
+          :requires ([babashka.fs :as fs] [cheshire.core :as json] [breadboard-mcp.views :as views])
+          :task (do (fs/create-dirs "dist")
+                    (spit "dist/breadboard.js" (views/bundle "breadboard.ui.main"))
+                    (spit "dist/importmap.json" (json/generate-string {:imports views/imports} {:pretty true}))
+                    (println "dist/breadboard.js" (format "%.0f KiB" (/ (fs/size "dist/breadboard.js") 1024.0))))}
   dev {:doc "Dev page on :9461: the views on fixtures, live reload, a squint REPL into the page"
        :requires ([breadboard-mcp.dev])
        :task (breadboard-mcp.dev/-main)}

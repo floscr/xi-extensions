@@ -6,19 +6,18 @@
             [three.core :as core]
             [three.dom :as dom]
             [three.host :as host]
-            [three.stage :as stage]))
+            [three.shadow :as shadow]
+            [three.stage :as stage]
+            [ui.button :as button]))
 
 (def ^:private style "
-body { font-size: 13px; }
-#stage { position: absolute; inset: 0; }
+:host { position: fixed; inset: 0; background: transparent; }
+.stage { position: absolute; inset: 0; }
 canvas { display: block; width: 100%; height: 100%; cursor: grab; }
-#bar { position: absolute; left: 8px; top: 8px; right: 8px; display: flex; gap: 6px; align-items: center; pointer-events: none; }
-#bar > * { pointer-events: auto; }
-button { font: inherit; padding: 3px 9px; border-radius: var(--border-radius-sm, 6px); cursor: pointer;
-         border: 1px solid var(--color-border-primary, #8884); color: inherit;
-         background: var(--color-background-secondary, #2228); }
-button:disabled { opacity: .5; cursor: default; }
-#info { opacity: .8; text-shadow: 0 0 4px var(--color-background-primary, #000); }
+.bar { position: absolute; left: 8px; top: 8px; right: 8px; display: flex; gap: 6px; align-items: center; pointer-events: none; }
+.bar > * { pointer-events: auto; }
+.bar .btn-secondary { background: var(--bg-1); }
+.info { color: var(--fg-1); padding: 2px 8px; border-radius: var(--radius-pill); background: color-mix(in oklch, var(--bg-1) 70%, transparent); }
 ")
 
 (def ^:private state (atom {:scene {} :selected nil}))
@@ -47,36 +46,48 @@ button:disabled { opacity: .5; cursor: default; }
 (defn- objects [{:keys [scene selected]}]
   (map-indexed (fn [i o] (shape-node i o selected)) (:objects scene)))
 
+(defn- bar
+  "Full screen, Ask about it, the info line; `mode` the display mode."
+  [{:keys [scene selected]} mode on-full on-ask]
+  [(button/button {:variant "secondary" :size "sm" :icon-left (if (= mode "fullscreen") "minimize" "maximize")
+                   :on-click on-full}
+                  (if (= mode "fullscreen") "Exit full screen" "Full screen"))
+   (button/button {:variant "secondary" :size "sm" :icon-left "search" :disabled (nil? selected) :on-click on-ask}
+                  "Ask about it")
+   [:span {:class "info"}
+    (cond (nil? (:objects scene)) "Loading…"
+          (some? selected) (str "Selected: " (:label (nth (:objects scene) selected)))
+          :else (str (count (:objects scene)) " objects · drag to orbit, scroll to zoom, click one"))]])
+
 (defn- mount! []
-  (js/document.head.append (dom/h [:style style]))
-  (let [view (dom/h [:div {:id "stage"}
-                     [:canvas]
-                     [:div {:id "bar"}
-                      [:button {:id "full"} "Full screen"]
-                      [:button {:id "ask" :disabled true} "Ask about it"]
-                      [:span {:id "info"} "Loading…"]]])
-        _ (js/document.body.append view)
-        info (fn [t] (set! (.-textContent (js/document.getElementById "info")) t))
+  (let [host-el (js/document.createElement "div")
+        _ (js/document.body.append host-el)
+        root (shadow/attach! host-el style [:div {:class "stage"} [:canvas] [:div {:class "bar"}]])
+        view (.querySelector root ".stage")
+        bar-el (.querySelector root ".bar")
         stg (stage/create! (.querySelector view "canvas") {:fov 50 :damping 0.08
                                                           :on-miss (fn [_] (swap! state assoc :selected nil))})
         mode (atom "inline")
+        host-ref (atom nil)
+        draw-bar! (fn []
+                    (dom/replace-children!
+                     bar-el
+                     (bar @state @mode
+                          (fn [] (.then (host/display-mode! @host-ref (if (= @mode "fullscreen") "inline" "fullscreen"))
+                                        (fn [m] (reset! mode m))))
+                          (fn [] (when-let [i (:selected @state)]
+                                   (host/message! @host-ref (str "Tell me about the " (:label (nth (:objects (:scene @state)) i)) " in the scene.")))))))
         h (host/connect! {:name "scene" :height 420
                           :on-mode (fn [m] (reset! mode m))
                           :on-result (fn [sc] (swap! state assoc :scene (or (:scene sc) {}) :selected nil :fresh true))})
-        label (fn [i] (:label (nth (:objects (:scene @state)) i)))
         ;; the agent's objects apart from the grid and lights, so framing fits them
         objs (THREE/Group.)]
+    (reset! host-ref h)
+    (add-watch mode :bar (fn [_ _ _ _] (draw-bar!)))
+    (draw-bar!)
     (core/render! (:root stg) surroundings)
     (.add (:root stg) objs)
     (.observe (js/ResizeObserver. #(stage/resize! stg (.-clientWidth view) (.-clientHeight view))) view)
-    (set! (.-onclick (js/document.getElementById "full"))
-          (fn [] (.then (host/display-mode! h (if (= @mode "fullscreen") "inline" "fullscreen"))
-                        (fn [m] (reset! mode m)
-                          (set! (.-textContent (js/document.getElementById "full"))
-                                (if (= m "fullscreen") "Exit full screen" "Full screen"))))))
-    (set! (.-onclick (js/document.getElementById "ask"))
-          (fn [] (when-let [i (:selected @state)]
-                   (host/message! h (str "Tell me about the " (label i) " in the scene.")))))
     (add-watch state :render
                (fn [_ _ before now]
                  (core/render! objs (objects now))
@@ -86,12 +97,9 @@ button:disabled { opacity: .5; cursor: default; }
                    (let [box (.setFromObject (THREE/Box3.) objs)]
                      (stage/frame! stg box [1 0.8 1.2] 1.2)))
                  (let [i (:selected now)]
-                   (set! (.-disabled (js/document.getElementById "ask")) (nil? i))
-                   (if (some? i)
-                     (do (info (str "Selected: " (label i)))
-                         (when-not (= i (:selected before))
-                           (host/context! h (str "In the 3D view the user selected: " (label i)))))
-                     (info (str (count (:objects (:scene now))) " objects · drag to orbit, scroll to zoom, click one"))))
+                   (when (and (some? i) (not= i (:selected before)))
+                     (host/context! h (str "In the 3D view the user selected: " (:label (nth (:objects (:scene now)) i))))))
+                 (draw-bar!)
                  (stage/request-render! stg)))))
 
 (mount!)
