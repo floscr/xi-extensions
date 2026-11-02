@@ -1,9 +1,9 @@
-(ns three-mcp.build
+(ns breadboard-mcp.build
   "Squint in babashka, no node: compile namespaces with squint's compiler,
    bundle them with esbuild (babashka.esbuild), and a dev server that
    rebuilds and live-reloads a page on save (server-sent events).
    `three` and `squint-cljs` stay external imports for the page's import
-   map (three-mcp.views/importmap)."
+   map (breadboard-mcp.views/importmap)."
   (:require [babashka.esbuild :as esbuild]
             [babashka.fs :as fs]
             [cheshire.core :as json]

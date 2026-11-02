@@ -4,18 +4,18 @@
         io.github.babashka/babashka.esbuild {:git/url "https://github.com/babashka/babashka.esbuild"
                                              :git/sha "c25eeb3d86ad739428e600375a96ad4024b379b9"}}
  :tasks
- {serve {:doc "Run the MCP server on stdin/stdout (xi starts it, see three-mcp.main)"
-         :requires ([three-mcp.main])
-         :task (three-mcp.main/-main)}
+ {serve {:doc "Run the MCP server on stdin/stdout (xi starts it, see breadboard-mcp.main)"
+         :requires ([breadboard-mcp.main])
+         :task (breadboard-mcp.main/-main)}
   build {:doc "Compile every view once, to check they build"
-         :requires ([three-mcp.views :as views])
+         :requires ([breadboard-mcp.views :as views])
          :task (doseq [e ["breadboard.ui.main" "scene.ui.main"]]
                  (println e (format "%.0f KiB" (/ (count (views/bundle e)) 1024.0))))}
   dev {:doc "Dev page on :9461: the views on fixtures, live reload, a squint REPL into the page"
-       :requires ([three-mcp.dev])
-       :task (three-mcp.dev/-main)}
+       :requires ([breadboard-mcp.dev])
+       :task (breadboard-mcp.dev/-main)}
   test {:doc "Unit tests (the shared model, the server's helpers)"
         :extra-paths ["test"]
-        :requires ([clojure.test :as t] [breadboard.model-test] [three-mcp.breadboard-test])
-        :task (let [{:keys [fail error]} (t/run-tests 'breadboard.model-test 'three-mcp.breadboard-test)]
+        :requires ([clojure.test :as t] [breadboard.model-test] [breadboard-mcp.breadboard-test])
+        :task (let [{:keys [fail error]} (t/run-tests 'breadboard.model-test 'breadboard-mcp.breadboard-test)]
                 (System/exit (if (zero? (+ fail error)) 0 1)))}}}

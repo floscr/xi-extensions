@@ -1,4 +1,4 @@
-(ns three-mcp.breadboard
+(ns breadboard-mcp.breadboard
   "The breadboard tools: a layout (board, parts, wires, steps) shown as a 3D
    view in the chat or put into an HTML document, the agent pointing at
    things in open views (breadboard_target) or running squint in them
@@ -8,12 +8,12 @@
             [breadboard.model :as model]
             [cheshire.core :as json]
             [clojure.string :as str]
-            [three-mcp.channels :as ch]
-            [three-mcp.views :as views]))
+            [breadboard-mcp.channels :as ch]
+            [breadboard-mcp.views :as views]))
 
 (def entry "breadboard.ui.main")
 
-(defn view-uri [] (str "ui://three/breadboard/" (views/version entry)))
+(defn view-uri [] (str "ui://breadboard/board/" (views/version entry)))
 
 (defn view-resource [uri]
   {:uri uri :name "breadboard" :mimeType "text/html;profile=mcp-app"

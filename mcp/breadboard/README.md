@@ -1,4 +1,4 @@
-# three: 3D views as an MCP server
+# breadboard: 3D breadboard views as an MCP server
 
 A babashka MCP server whose tools show interactive three.js views (MCP Apps) in
 xi, or any MCP Apps host. The views are squint, compiled on demand.
@@ -21,13 +21,13 @@ Needs [babashka](https://babashka.org); squint and esbuild come as bb
 dependencies, no node. In `~/.config/xi/mcp.edn`:
 
 ```clojure
-{:three {:command "bb"
-         :args ["--config" "/path/to/xi-extensions/mcp/three/bb.edn" "serve"]
-         :code-paths ["/path/to/xi-extensions/mcp/three/bb"
-                      "/path/to/xi-extensions/mcp/three/src"]}}
+{:breadboard {:command "bb"
+              :args ["--config" "/path/to/xi-extensions/mcp/breadboard/bb.edn" "serve"]
+              :code-paths ["/path/to/xi-extensions/mcp/breadboard/bb"
+                           "/path/to/xi-extensions/mcp/breadboard/src"]}}
 ```
 
-Then run `/mcp refresh three`. After changing code, run it again: a view's
+Then run `/mcp refresh breadboard`. After changing code, run it again: a view's
 URI carries its bundle's hash. A changed `bb/` or `src/` also changes the
 server's trust fingerprint, so xi asks once more.
 
@@ -37,7 +37,7 @@ internet.
 ## Layout
 
 ```
-bb/three_mcp/   the server (bb): rpc (concurrent stdio JSON-RPC), build
+bb/breadboard_mcp/   the server (bb): rpc (concurrent stdio JSON-RPC), build
                 (squint + esbuild, dev server), views (compile on demand,
                 import map), channels (agent → open views: commands, long
                 poll, eval), breadboard, scene
@@ -50,7 +50,7 @@ dev/            the dev page
 ```
 
 Bundles import `three` and `squint-cljs` by name. The import map in
-`three-mcp.views` resolves them to jsDelivr, the one host a view's CSP allows.
+`breadboard-mcp.views` resolves them to jsDelivr, the one host a view's CSP allows.
 Pages that embed a board get the same import map.
 
 ## Tasks

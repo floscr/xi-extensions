@@ -1,14 +1,14 @@
-(ns three-mcp.scene
+(ns breadboard-mcp.scene
   "scene_show: the agent describes a 3D scene as data and the chat shows it
    as an interactive view (src/scene/ui). Drag to orbit, scroll to zoom,
    click an object: the agent learns the selection through ui_state, \"Ask
    about it\" puts a question in the message box."
   (:require [clojure.string :as str]
-            [three-mcp.views :as views]))
+            [breadboard-mcp.views :as views]))
 
 (def entry "scene.ui.main")
 
-(defn view-uri [] (str "ui://three/scene/" (views/version entry)))
+(defn view-uri [] (str "ui://breadboard/scene/" (views/version entry)))
 
 (defn view-resource [uri]
   {:uri uri :name "scene" :mimeType "text/html;profile=mcp-app"

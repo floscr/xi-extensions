@@ -1,4 +1,4 @@
-(ns three-mcp.channels
+(ns breadboard-mcp.channels
   "What the agent sends to the views open in a chat, and back. Per chat
    (xi/roomId) and app: a log of recent commands and, per board (\"*\" =
    all), the state they add up to, which a view that opens later starts

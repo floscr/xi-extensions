@@ -1,11 +1,11 @@
-(ns three-mcp.views
+(ns breadboard-mcp.views
   "The views' JavaScript: the squint under src/ compiled and bundled on
-   demand (three-mcp.build: squint + esbuild in bb) and cached until a
+   demand (breadboard-mcp.build: squint + esbuild in bb) and cached until a
    source file changes. A bundle imports three and squint-cljs by bare name;
    `importmap` resolves them to jsDelivr, the one host a view's CSP allows."
   (:require [babashka.fs :as fs]
             [clojure.string :as str]
-            [three-mcp.build :as build]))
+            [breadboard-mcp.build :as build]))
 
 (def root (fs/parent (fs/parent (fs/parent (fs/absolutize *file*)))))
 (def src-dir (fs/path root "src"))

@@ -1,7 +1,7 @@
-(ns three-mcp.breadboard-test
+(ns breadboard-mcp.breadboard-test
   (:require [clojure.string :as str]
             [clojure.test :refer [deftest is testing]]
-            [three-mcp.breadboard :as bb]))
+            [breadboard-mcp.breadboard :as bb]))
 
 (def html "<html><body><h1>x</h1>\n<!-- breadboard:a -->\n<p>end</p></body></html>")
 

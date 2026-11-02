@@ -1,4 +1,4 @@
-(ns three-mcp.rpc
+(ns breadboard-mcp.rpc
   "MCP over stdio for babashka, after xi's packages/mcp-bb-example: one
    JSON-RPC message per line, stdout for the protocol only (log to stderr).
    Unlike the example every request runs on its own thread, because some
